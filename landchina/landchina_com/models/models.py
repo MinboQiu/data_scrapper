@@ -25,6 +25,7 @@ class Record(DeclarativeBase):
 
     id = Column(Integer, primary_key=True)
     name = Column('name', String(255), nullable=True)
+    guid = Column('guid', String(255), nullable=False)
     regulationNo = Column('regulationNo', String(255), nullable=True)
     landSource = Column('landSource', String(255), nullable=True)
     tenureOfUse = Column('tenureOfUse', Integer(), nullable=True)
@@ -53,10 +54,11 @@ class Payment(DeclarativeBase):
     __tablename__ = "payments"
 
     id = Column(Integer(), primary_key=True)
+    guid = Column('guid', String(255), nullable=False)
     date = Column('date', Date(), nullable=True)
     amount = Column('amount', Float(), nullable=True)
     comment = Column('comment', String(255), nullable=True)
-    record_id = Column(Integer, ForeignKey('records.id'), nullable=True)
+    record_id = Column(String(), ForeignKey('records.guid'), nullable=False)
     record = relationship("Record", back_populates="payments")
 
 

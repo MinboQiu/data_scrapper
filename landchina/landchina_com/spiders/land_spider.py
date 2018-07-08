@@ -1,9 +1,9 @@
 import scrapy
 import logging
 import time
-from scrapy.selector import HtmlXPathSelector
+from scrapy.selector import Selector
 from urllib.parse import urljoin
-from landchina_com.landchina_com.items import LandChinaItem, Payment
+from landchina_com.items import LandChinaItem, Payment
 
 
 class LandSpider(scrapy.Spider):
@@ -16,7 +16,7 @@ class LandSpider(scrapy.Spider):
                 'TAB_QuerySubmitConditionData': '9f2c3acd-0256-4da2-a659-6949c4671a2a:{}~{}'.format(
                     start_date, end_date),
                 'TAB_QuerySortItemList': '282:False',
-                'TAB_QuerySubmitPagerData': 1,
+                'TAB_QuerySubmitPagerData': '1',
                 'hidComName': 'default',
                 '__VIEWSTATE': "",
                 '__EVENTVALIDATION': ""}
@@ -27,43 +27,45 @@ class LandSpider(scrapy.Spider):
 
     def parse_login(self, response):
         self.log("process login ...", logging.INFO)
-        resp = HtmlXPathSelector(response)
+        resp = Selector(response)
         self.retrieve_state(resp)
 
         time.sleep(10)
         self.log("begin page 1 for {} - {}".format(self.start_date, self.end_date), logging.INFO)
-        scrapy.FormRequest(url=self.root_url, callback=self.parse_page, formdata=self.postData, meta=self.postData)
+        return scrapy.FormRequest(url=self.root_url, callback=self.parse_list, formdata=self.postData, meta=self.postData, encoding=self.encoding)
 
     def parse_list(self, response):
         self.log("process list page {}".format(response.url), logging.INFO)
-        resp = HtmlXPathSelector(response)
+        resp = Selector(response)
         table = resp.xpath('//table[@id="TAB_contentTable"]')[0]
 
         # push detail page links to scrapy
-        detail_links = table.xpath('//a[contains(., "tabid=386")/@href').extract()
+        detail_links = table.xpath('//a[contains(@href, "tabid=386")]/@href').extract()
         for link in detail_links:
-            scrapy.Request(url=urljoin(self.root_url, link), callback=self.parse_detail)
+            yield scrapy.Request(url=urljoin(self.root_url, link), callback=self.parse_detail)
 
         # push page links to scrapy
         if response.meta["TAB_QuerySubmitPagerData"] == 1:
             self.retrieve_state(resp)
-            totalPage = table.xpath("//a[contains(., '尾页')]").re_first(r"QueryAction.GoPage\('TAB',(\d*)")
+            totalPage = table.xpath("//a[contains(., '尾页')]").re_first(r"QueryAction.GoPage\('TAB',(\d*)").strip()
             for pageNo in range(2, int(totalPage)):
                 self.log("begin page {} for {} - {}".format(pageNo, self.start_date, self.end_date), logging.INFO)
-                scrapy.FormRequest(url=self.root_url, callback=self.parse_page, formdata=self.postData, meta=self.postData)
+                self.postData["TAB_QuerySubmitPagerData"] = str(pageNo)
+                yield scrapy.FormRequest(url=self.root_url, callback=self.parse_list, formdata=self.postData, meta=self.postData)
 
     def parse_detail(self, response):
         self.log("process detail page {}".format(response.url), logging.INFO)
-        resp = HtmlXPathSelector(response)
-        childTrs = resp.xpath('//table[@id="theme"]/tbody/tr')
+        resp = Selector(response)
+        childTrs = resp.xpath('//table[@class="theme"]/tbody/tr')
         data = LandChinaItem()
         data["url"] = response.url
-        data["district"] = childTrs[2].xpath('td')[1].extract()
-        data["regulationNo"] = childTrs[2].xpath('td')[3].extract()
-        data["name"] = childTrs[3].xpath('td')[1].extract()
-        data["location"] = childTrs[4].xpath('td')[1].extract()
-        data["area"] = childTrs[5].xpath('td')[1].extract()
-        are2 = childTrs[5].xpath('td')[3].extract()
+        data["guid"] = resp.xpath('//form/@action').re_first(r'recorderguid=(.*)').strip()
+        data["district"] = childTrs[2].xpath('td[2]/span/text()').extract_first().strip()
+        data["regulationNo"] = childTrs[2].xpath('td[4]/span/text()').extract_first().strip()
+        data["name"] = childTrs[3].xpath('td[2]/span/text()').extract_first().strip()
+        data["location"] = childTrs[4].xpath('td[2]/span/text()').extract_first().strip()
+        data["area"] = childTrs[5].xpath('td[2]/span/text()').extract_first().strip()
+        are2 = childTrs[5].xpath('td[4]/span/text()').extract()
         try:
             if are2 == "" or not are2:
                 data["landSource"] = "新增建设用地(来自存量库)"
@@ -75,31 +77,32 @@ class LandSpider(scrapy.Spider):
                 data["landSource"] = "新增建设用地(来自存量库)"
         except:
             data["landSource"] = "新增建设用地(来自存量库)"
-        data["usage"] = childTrs[6].xpath('td')[1].extract()
-        data["wayOfSupply"] = childTrs[6].xpath('td')[3].extract()
-        data["tenureOfUse"] = childTrs[7].xpath('td')[1].extract()
-        data["industry"] = childTrs[7].xpath('td')[3].extract()
-        data["landLevel"] = childTrs[8].xpath('td')[1].extract()
-        data["price"] = childTrs[8].xpath('td')[3].extract()
-        data["owner"] = childTrs[10].xpath('td')[1].extract()
-        plotRatio = childTrs[12].xpath('tbody tr')[1].xpath('td')
-        data["plotRatioUpperLimit"] = plotRatio[1].extract()
-        data["plotRatioDownLimit"] = plotRatio[3].extract()
-        data["dateOfDeliveryAgreed"] = childTrs[12].xpath('td')[3].extract()
-        data["dateOfConstructionAgreed"] = childTrs[13].xpath('td')[1].extract()
-        data["dateOfCompletionAgreed"] = childTrs[13].xpath('td')[3].extract()
-        data["dateOfConstructionActual"] = childTrs[14].xpath('td')[1].extract()
-        data["dateOfCompletionActual"] = childTrs[14].xpath('td')[3].extract()
-        data["approvedBy"] = childTrs[15].xpath('td')[1].extract()
+        data["usage"] = childTrs[6].xpath('td[2]/span/text()').extract_first().strip()
+        data["wayOfSupply"] = childTrs[6].xpath('td[4]/span/text()').extract_first().strip()
+        data["tenureOfUse"] = childTrs[7].xpath('td[2]/span/text()').extract_first().strip()
+        data["industry"] = childTrs[7].xpath('td[4]/span/text()').extract_first().strip()
+        data["landLevel"] = childTrs[8].xpath('td[2]/span/text()').extract_first().strip()
+        data["price"] = childTrs[8].xpath('td[4]/span/text()').extract_first().strip()
+        data["owner"] = childTrs[10].xpath('td[2]/span/text()').extract_first().strip()
+        plotRatio = childTrs[12].xpath('td/table//tr[2]/td')
+        data["plotRatioDownLimit"] = plotRatio[1].xpath('span/text()').extract_first().strip()
+        data["plotRatioUpperLimit"] = plotRatio[3].xpath('span/text()').extract_first().strip()
+        data["dateOfDeliveryAgreed"] = childTrs[12].xpath('td[4]/span/text()').extract_first().strip()
+        data["dateOfConstructionAgreed"] = childTrs[13].xpath('td[2]/span/text()').extract_first().strip()
+        data["dateOfCompletionAgreed"] = childTrs[13].xpath('td[4]/span/text()').extract_first().strip()
+        data["dateOfConstructionActual"] = childTrs[14].xpath('td[2]/span/text()').extract_first().strip()
+        data["dateOfCompletionActual"] = childTrs[14].xpath('td[4]/span/text()').extract_first().strip()
+        data["approvedBy"] = childTrs[15].xpath('td[2]/span/text()').extract_first().strip()
         if "人民政府" not in data["approvedBy"]:
             data["approvedBy"] += "人民政府"
-        data["dateOfSigning"] = childTrs[15].xpath('td')[3].extract()
-        paymentsTrs = childTrs[9].xpath('table tbody')[0].xpath('tr[position()>3]')
+        data["dateOfSigning"] = childTrs[15].xpath('td[4]/span/text()').extract_first().strip()
+        paymentsTrs = childTrs[9].xpath('td[2]//tr[contains(@kvalue, "-")]')[0]
         for paymentsTr in paymentsTrs:
             payment = Payment()
-            payment.date = paymentsTr.xpath('td')[1].extract()
-            payment.amount = paymentsTr.xpath('td')[2].extract()
-            payment.comment = paymentsTr.xpath('td')[3].extract()
+            payment["guid"] = paymentsTr.xpath('@kvalue').extract_first().strip()
+            payment["date"] = paymentsTr.xpath('td[2]/span/text()').extract_first().strip()
+            payment["amount"] = paymentsTr.xpath('td[3]/span/text()').extract_first().strip()
+            payment["comment"] = paymentsTr.xpath('td[4]/span/text()').extract_first().strip()
             data["payments"].append(payment)
         return data
 
@@ -108,7 +111,7 @@ class LandSpider(scrapy.Spider):
         pass
 
     def retrieve_state(self, resp):
-        vs = resp.xpath('//input[@id="__VIEWSTATE"]/@value').extract_first()
-        ev = resp.xpath('//input[@id="__EVENTVALIDATION"]/@value').extract_first()
+        vs = resp.xpath('//input[@id="__VIEWSTATE"]/@value').extract_first().strip()
+        ev = resp.xpath('//input[@id="__EVENTVALIDATION"]/@value').extract_first().strip()
         self.postData['__VIEWSTATE'] = vs
         self.postData['__EVENTVALIDATION'] = ev

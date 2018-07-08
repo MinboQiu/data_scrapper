@@ -9,6 +9,7 @@ import scrapy
 
 
 class LandChinaItem(scrapy.Item):
+    guid = scrapy.Field()
     name = scrapy.Field()
     regulationNo = scrapy.Field()
     landSource = scrapy.Field()
@@ -36,6 +37,7 @@ class LandChinaItem(scrapy.Item):
 
 
 class Payment(scrapy.Item):
+    guid = scrapy.Field()
     date = scrapy.Field()
     amount = scrapy.Field()
     comment = scrapy.Field()
