@@ -38,7 +38,7 @@ class LandchinaComPipeline(object):
         rec.dateOfConstructionActual = self.parse_date(item["dateOfConstructionActual"])
         rec.dateOfCompletionActual = self.parse_date(item["dateOfCompletionActual"])
         rec.approvedBy = item["approvedBy"]
-        rec.dateOfSigning = item["dateOfSigning"]
+        rec.dateOfSigning = self.parse_date(item["dateOfSigning"])
 
         for payment in item["payments"]:
             pm = Payment()
@@ -66,4 +66,6 @@ class LandchinaComPipeline(object):
         self.session.close()
 
     def parse_date(self, date):
+        if date is None:
+            return None
         return datetime.datetime.strptime(date, "%Y年%m月%d日")

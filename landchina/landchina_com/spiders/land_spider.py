@@ -87,15 +87,15 @@ class LandSpider(scrapy.Spider):
         plotRatio = childTrs[12].xpath('td/table//tr[2]/td')
         data["plotRatioDownLimit"] = plotRatio[1].xpath('span/text()').extract_first().strip()
         data["plotRatioUpperLimit"] = plotRatio[3].xpath('span/text()').extract_first().strip()
-        data["dateOfDeliveryAgreed"] = childTrs[12].xpath('td[4]/span/text()').extract_first().strip()
-        data["dateOfConstructionAgreed"] = childTrs[13].xpath('td[2]/span/text()').extract_first().strip()
-        data["dateOfCompletionAgreed"] = childTrs[13].xpath('td[4]/span/text()').extract_first().strip()
-        data["dateOfConstructionActual"] = childTrs[14].xpath('td[2]/span/text()').extract_first().strip()
-        data["dateOfCompletionActual"] = childTrs[14].xpath('td[4]/span/text()').extract_first().strip()
+        data["dateOfDeliveryAgreed"] = childTrs[12].xpath('td[4]/span/text()').extract_first()
+        data["dateOfConstructionAgreed"] = childTrs[13].xpath('td[2]/span/text()').extract_first()
+        data["dateOfCompletionAgreed"] = childTrs[13].xpath('td[4]/span/text()').extract_first()
+        data["dateOfConstructionActual"] = childTrs[14].xpath('td[2]/span/text()').extract_first()
+        data["dateOfCompletionActual"] = childTrs[14].xpath('td[4]/span/text()').extract_first()
         data["approvedBy"] = childTrs[15].xpath('td[2]/span/text()').extract_first().strip()
         if "人民政府" not in data["approvedBy"]:
             data["approvedBy"] += "人民政府"
-        data["dateOfSigning"] = childTrs[15].xpath('td[4]/span/text()').extract_first().strip()
+        data["dateOfSigning"] = childTrs[15].xpath('td[4]/span/text()').extract_first()
         paymentsTrs = childTrs[9].xpath('td[2]//tr[contains(@kvalue, "-")]')[0]
         for paymentsTr in paymentsTrs:
             payment = Payment()
