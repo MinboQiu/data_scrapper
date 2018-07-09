@@ -96,7 +96,7 @@ class LandSpider(scrapy.Spider):
         if "人民政府" not in data["approvedBy"]:
             data["approvedBy"] += "人民政府"
         data["dateOfSigning"] = childTrs[15].xpath('td[4]/span/text()').extract_first()
-        paymentsTrs = childTrs[9].xpath('td[2]//tr[contains(@kvalue, "-")]')[0]
+        paymentsTrs = childTrs[9].xpath('td[2]//tr[contains(@kvalue, "-")]')
         for paymentsTr in paymentsTrs:
             payment = Payment()
             payment["guid"] = paymentsTr.xpath('@kvalue').extract_first().strip()
