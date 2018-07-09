@@ -3,15 +3,15 @@ import logging
 import time
 from scrapy.selector import Selector
 from urllib.parse import urljoin
-from landchina_com.items import LandChinaItem, Payment
+from landchina.landchina_com.items import LandChinaItem, Payment
 
 
 class LandSpider(scrapy.Spider):
     name = "landchina_com"
     root_url = "http://www.landchina.com/default.aspx?tabid=263"
     encoding = "gbk"
-    start_date = "2018-06-26"
-    end_date = "2018-06-26"
+    start_date = "2018-6-26"
+    end_date = "2018-6-26"
     postData = {'TAB_QueryConditionItem': '9f2c3acd-0256-4da2-a659-6949c4671a2a',
                 'TAB_QuerySubmitConditionData': '9f2c3acd-0256-4da2-a659-6949c4671a2a:{}~{}'.format(
                     start_date, end_date),
@@ -30,9 +30,9 @@ class LandSpider(scrapy.Spider):
         resp = Selector(response)
         self.retrieve_state(resp)
 
-        time.sleep(10)
+        time.sleep(60)
         self.log("begin page 1 for {} - {}".format(self.start_date, self.end_date), logging.INFO)
-        return scrapy.FormRequest(url=self.root_url, callback=self.parse_list, formdata=self.postData, meta=self.postData, encoding=self.encoding)
+        return scrapy.FormRequest(url=self.root_url, callback=self.parse_list, formdata=self.postData, meta=self.postData)
 
     def parse_list(self, response):
         self.log("process list page {}".format(response.url), logging.INFO)

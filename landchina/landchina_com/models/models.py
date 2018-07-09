@@ -23,9 +23,9 @@ def create_table(engine):
 class Record(DeclarativeBase):
     __tablename__ = "records"
 
-    id = Column(Integer, primary_key=True)
+    # id = Column(Integer, primary_key=True)
     name = Column('name', String(255), nullable=True)
-    guid = Column('guid', String(255), nullable=False)
+    guid = Column('guid', String(255), nullable=False, primary_key=True)
     regulationNo = Column('regulationNo', String(255), nullable=True)
     landSource = Column('landSource', String(255), nullable=True)
     tenureOfUse = Column('tenureOfUse', Integer(), nullable=True)
@@ -58,7 +58,7 @@ class Payment(DeclarativeBase):
     date = Column('date', Date(), nullable=True)
     amount = Column('amount', Float(), nullable=True)
     comment = Column('comment', String(255), nullable=True)
-    record_id = Column(String(), ForeignKey('records.guid'), nullable=False)
+    record_id = Column(String(255), ForeignKey('records.guid'), nullable=False)
     record = relationship("Record", back_populates="payments")
 
 
