@@ -21,6 +21,7 @@ class LandSpider(scrapy.Spider):
                 '__VIEWSTATE': "",
                 '__EVENTVALIDATION': ""}
 
+
     def start_requests(self):
         self.log("begin login for {} - {}".format(self.start_date, self.end_date), logging.INFO)
         return [scrapy.Request(url=self.root_url, callback=self.parse_login, encoding=self.encoding)]
@@ -59,12 +60,12 @@ class LandSpider(scrapy.Spider):
         childTrs = resp.xpath('//table[@class="theme"]/tbody/tr')
         data = LandChinaItem()
         data["url"] = response.url
-        data["guid"] = resp.xpath('//form/@action').re_first(r'recorderguid=(.*)').strip()
-        data["district"] = childTrs[2].xpath('td[2]/span/text()').extract_first().strip()
-        data["regulationNo"] = childTrs[2].xpath('td[4]/span/text()').extract_first().strip()
-        data["name"] = childTrs[3].xpath('td[2]/span/text()').extract_first().strip()
-        data["location"] = childTrs[4].xpath('td[2]/span/text()').extract_first().strip()
-        data["area"] = childTrs[5].xpath('td[2]/span/text()').extract_first().strip()
+        data["guid"] = resp.xpath('//form/@action').re_first(r'recorderguid=(.*)')
+        data["district"] = childTrs[2].xpath('td[2]/span/text()').extract_first()
+        data["regulationNo"] = childTrs[2].xpath('td[4]/span/text()').extract_first()
+        data["name"] = childTrs[3].xpath('td[2]/span/text()').extract_first()
+        data["location"] = childTrs[4].xpath('td[2]/span/text()').extract_first()
+        data["area"] = childTrs[5].xpath('td[2]/span/text()').extract_first()
         are2 = childTrs[5].xpath('td[4]/span/text()').extract()
         try:
             if are2 == "" or not are2:
@@ -77,33 +78,35 @@ class LandSpider(scrapy.Spider):
                 data["landSource"] = "新增建设用地(来自存量库)"
         except:
             data["landSource"] = "新增建设用地(来自存量库)"
-        data["usage"] = childTrs[6].xpath('td[2]/span/text()').extract_first().strip()
-        data["wayOfSupply"] = childTrs[6].xpath('td[4]/span/text()').extract_first().strip()
-        data["tenureOfUse"] = childTrs[7].xpath('td[2]/span/text()').extract_first().strip()
-        data["industry"] = childTrs[7].xpath('td[4]/span/text()').extract_first().strip()
-        data["landLevel"] = childTrs[8].xpath('td[2]/span/text()').extract_first().strip()
-        data["price"] = childTrs[8].xpath('td[4]/span/text()').extract_first().strip()
-        data["owner"] = childTrs[10].xpath('td[2]/span/text()').extract_first().strip()
+        data["usage"] = childTrs[6].xpath('td[2]/span/text()').extract_first()
+        data["wayOfSupply"] = childTrs[6].xpath('td[4]/span/text()').extract_first()
+        data["tenureOfUse"] = childTrs[7].xpath('td[2]/span/text()').extract_first()
+        data["industry"] = childTrs[7].xpath('td[4]/span/text()').extract_first()
+        data["landLevel"] = childTrs[8].xpath('td[2]/span/text()').extract_first()
+        data["price"] = childTrs[8].xpath('td[4]/span/text()').extract_first()
+        data["owner"] = childTrs[10].xpath('td[2]/span/text()').extract_first()
         plotRatio = childTrs[12].xpath('td/table//tr[2]/td')
-        data["plotRatioDownLimit"] = plotRatio[1].xpath('span/text()').extract_first().strip()
-        data["plotRatioUpperLimit"] = plotRatio[3].xpath('span/text()').extract_first().strip()
+        data["plotRatioDownLimit"] = plotRatio[1].xpath('span/text()').extract_first()
+        data["plotRatioUpperLimit"] = plotRatio[3].xpath('span/text()').extract_first()
         data["dateOfDeliveryAgreed"] = childTrs[12].xpath('td[4]/span/text()').extract_first()
         data["dateOfConstructionAgreed"] = childTrs[13].xpath('td[2]/span/text()').extract_first()
         data["dateOfCompletionAgreed"] = childTrs[13].xpath('td[4]/span/text()').extract_first()
         data["dateOfConstructionActual"] = childTrs[14].xpath('td[2]/span/text()').extract_first()
         data["dateOfCompletionActual"] = childTrs[14].xpath('td[4]/span/text()').extract_first()
-        data["approvedBy"] = childTrs[15].xpath('td[2]/span/text()').extract_first().strip()
+        data["approvedBy"] = childTrs[15].xpath('td[2]/span/text()').extract_first()
         if "人民政府" not in data["approvedBy"]:
             data["approvedBy"] += "人民政府"
         data["dateOfSigning"] = childTrs[15].xpath('td[4]/span/text()').extract_first()
         paymentsTrs = childTrs[9].xpath('td[2]//tr[contains(@kvalue, "-")]')
+        payments = []
         for paymentsTr in paymentsTrs:
             payment = Payment()
-            payment["guid"] = paymentsTr.xpath('@kvalue').extract_first().strip()
-            payment["date"] = paymentsTr.xpath('td[2]/span/text()').extract_first().strip()
-            payment["amount"] = paymentsTr.xpath('td[3]/span/text()').extract_first().strip()
-            payment["comment"] = paymentsTr.xpath('td[4]/span/text()').extract_first().strip()
-            data["payments"].append(payment)
+            payment["guid"] = paymentsTr.xpath('@kvalue').extract_first()
+            payment["date"] = paymentsTr.xpath('td[2]/span/text()').extract_first()
+            payment["amount"] = paymentsTr.xpath('td[3]/span/text()').extract_first()
+            payment["comment"] = paymentsTr.xpath('td[4]/span/text()').extract_first()
+            payments.append(dict(payment))
+        data["payments"] = payments
         return data
 
     def parse(self, response):
