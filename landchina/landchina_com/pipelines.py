@@ -62,8 +62,7 @@ class LandchinaComPipeline(object):
             spider.log("add database {}".format(rec.url), logging.INFO)
         except:
             self.session.rollback()
-            self.log.error("add database {} failed".format(rec.url), logging.ERROR)
-            raise
+            spider.log("add database {} failed".format(rec.url), logging.ERROR)
         return item
 
     def parse_date(self, data):

@@ -21,7 +21,6 @@ class LandSpider(scrapy.Spider):
                 '__VIEWSTATE': "",
                 '__EVENTVALIDATION': ""}
 
-
     def start_requests(self):
         self.log("begin login for {} - {}".format(self.start_date, self.end_date), logging.INFO)
         return [scrapy.Request(url=self.root_url, callback=self.parse_login, encoding=self.encoding)]
@@ -31,9 +30,10 @@ class LandSpider(scrapy.Spider):
         resp = Selector(response)
         self.retrieve_state(resp)
 
-        time.sleep(60)
+        time.sleep(10)
         self.log("begin page 1 for {} - {}".format(self.start_date, self.end_date), logging.INFO)
-        return scrapy.FormRequest(url=self.root_url, callback=self.parse_list, formdata=self.postData, meta=self.postData)
+        return scrapy.FormRequest(url=self.root_url, callback=self.parse_list, formdata=self.postData,
+                                  meta=self.postData, encoding=self.encoding)
 
     def parse_list(self, response):
         self.log("process list page {}".format(response.url), logging.INFO)
@@ -43,7 +43,7 @@ class LandSpider(scrapy.Spider):
         # push detail page links to scrapy
         detail_links = table.xpath('//a[contains(@href, "tabid=386")]/@href').extract()
         for link in detail_links:
-            yield scrapy.Request(url=urljoin(self.root_url, link), callback=self.parse_detail)
+            yield scrapy.Request(url=urljoin(self.root_url, link), callback=self.parse_detail, encoding=self.encoding)
 
         # push page links to scrapy
         if response.meta["TAB_QuerySubmitPagerData"] == 1:
@@ -52,7 +52,8 @@ class LandSpider(scrapy.Spider):
             for pageNo in range(2, int(totalPage)):
                 self.log("begin page {} for {} - {}".format(pageNo, self.start_date, self.end_date), logging.INFO)
                 self.postData["TAB_QuerySubmitPagerData"] = str(pageNo)
-                yield scrapy.FormRequest(url=self.root_url, callback=self.parse_list, formdata=self.postData, meta=self.postData)
+                yield scrapy.FormRequest(url=self.root_url, callback=self.parse_list, formdata=self.postData,
+                                         meta=self.postData, encoding=self.encoding)
 
     def parse_detail(self, response):
         self.log("process detail page {}".format(response.url), logging.INFO)
