@@ -31,7 +31,8 @@ class LandSpider(scrapy.Spider):
         self.retrieve_state(resp)
 
         time.sleep(10)
-        self.log("begin page 1 for {} - {}".format(self.start_date, self.end_date), logging.INFO)
+        self.log("begin page {} for {} - {}".format(self.postData["TAB_QuerySubmitPagerData"], self.start_date,
+                                                    self.end_date), logging.INFO)
         return scrapy.FormRequest(url=self.root_url, callback=self.parse_list, formdata=self.postData,
                                   meta=self.postData, encoding=self.encoding)
 
@@ -46,7 +47,7 @@ class LandSpider(scrapy.Spider):
             yield scrapy.Request(url=urljoin(self.root_url, link), callback=self.parse_detail, encoding=self.encoding)
 
         # push page links to scrapy
-        if response.meta["TAB_QuerySubmitPagerData"] == 1:
+        if response.meta["TAB_QuerySubmitPagerData"] == "1":
             self.retrieve_state(resp)
             totalPage = table.xpath("//a[contains(., '尾页')]").re_first(r"QueryAction.GoPage\('TAB',(\d*)").strip()
             for pageNo in range(2, int(totalPage)):
@@ -95,8 +96,9 @@ class LandSpider(scrapy.Spider):
         data["dateOfConstructionActual"] = childTrs[14].xpath('td[2]/span/text()').extract_first()
         data["dateOfCompletionActual"] = childTrs[14].xpath('td[4]/span/text()').extract_first()
         data["approvedBy"] = childTrs[15].xpath('td[2]/span/text()').extract_first()
-        if "人民政府" not in data["approvedBy"]:
-            data["approvedBy"] += "人民政府"
+        if data["approvedBy"] is not None:
+            if "人民政府" not in data["approvedBy"]:
+                data["approvedBy"] += "人民政府"
         data["dateOfSigning"] = childTrs[15].xpath('td[4]/span/text()').extract_first()
         paymentsTrs = childTrs[9].xpath('td[2]//tr[contains(@kvalue, "-")]')
         payments = []

@@ -34,6 +34,7 @@ class LandchinaComPipeline(object):
         rec.usage = self.parse_string(item["usage"])
         rec.wayOfSupply = self.parse_string(item["wayOfSupply"])
         rec.tenureOfUse = self.parse_int(item["tenureOfUse"])
+        rec.tenureOfUseStr = self.parse_string(item["tenureOfUse"])
         rec.industry = self.parse_string(item["industry"])
         rec.landLevel = self.parse_string(item["landLevel"])
         rec.price = self.parse_float(item["price"])
@@ -60,15 +61,15 @@ class LandchinaComPipeline(object):
             self.session.add(rec)
             self.session.commit()
             spider.log("add database {}".format(rec.url), logging.INFO)
-        except:
+        except Exception as e:
             self.session.rollback()
-            spider.log("add database {} failed".format(rec.url), logging.ERROR)
+            spider.log("add database failed {}, {}".format(rec.url, e), logging.ERROR)
         return item
 
     def parse_date(self, data):
         if data is None:
             return None
-        strip_data = data.strip()
+        strip_data = self.format_string(data)
         if strip_data == "":
             return None
         return datetime.datetime.strptime(strip_data, "%Y年%m月%d日")
@@ -76,12 +77,12 @@ class LandchinaComPipeline(object):
     def parse_string(self, data):
         if data is None:
             return None
-        return data.strip()
+        return self.format_string(data)
 
     def parse_float(self, data):
         if data is None:
             return None
-        strip_data = data.strip()
+        strip_data = self.format_string(data)
         if strip_data == "":
             return None
         return float(strip_data)
@@ -89,7 +90,10 @@ class LandchinaComPipeline(object):
     def parse_int(self, data):
         if data is None:
             return None
-        strip_data = data.strip()
+        strip_data = self.format_string(data)
         if strip_data == "":
             return None
         return int(strip_data)
+
+    def format_string(self, data):
+        return "".join(data.split()).strip()

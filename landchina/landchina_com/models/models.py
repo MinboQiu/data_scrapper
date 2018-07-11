@@ -29,6 +29,7 @@ class Record(DeclarativeBase):
     regulationNo = Column('regulationNo', String(255), nullable=True)
     landSource = Column('landSource', String(255), nullable=True)
     tenureOfUse = Column('tenureOfUse', Integer(), nullable=True)
+    tenureOfUseStr = Column('tenureOfUseStr', String(255), nullable=True)
     industry = Column('industry', String(255), nullable=True)
     landLevel = Column('landLevel', String(255), nullable=True)
     price = Column('price', Float(), nullable=True)
