@@ -10,8 +10,8 @@ class LandSpider(scrapy.Spider):
     name = "landchina_com"
     root_url = "http://www.landchina.com/default.aspx?tabid=263"
     encoding = "gbk"
-    start_date = "2018-6-26"
-    end_date = "2018-6-26"
+    start_date = "2018-6-25"
+    end_date = "2018-6-20"
     postData = {'TAB_QueryConditionItem': '9f2c3acd-0256-4da2-a659-6949c4671a2a',
                 'TAB_QuerySubmitConditionData': '9f2c3acd-0256-4da2-a659-6949c4671a2a:{}~{}'.format(
                     start_date, end_date),
@@ -24,6 +24,7 @@ class LandSpider(scrapy.Spider):
     def start_requests(self):
         self.log("begin login for {} - {}".format(self.start_date, self.end_date), logging.INFO)
         return [scrapy.Request(url=self.root_url, callback=self.parse_login, encoding=self.encoding)]
+        # return [scrapy.Request(url='http://www.landchina.com/default.aspx?tabid=386&comname=default&wmguid=75c72564-ffd9-426a-954b-8ac2df0903b7&recorderguid=3a4498fe-ba10-4080-9cfd-e78f16b03db1', callback=self.parse_detail, encoding=self.encoding)]
 
     def parse_login(self, response):
         self.log("process login ...", logging.INFO)
@@ -44,7 +45,7 @@ class LandSpider(scrapy.Spider):
         # push detail page links to scrapy
         detail_links = table.xpath('//a[contains(@href, "tabid=386")]/@href').extract()
         for link in detail_links:
-            yield scrapy.Request(url=urljoin(self.root_url, link), callback=self.parse_detail, encoding=self.encoding)
+            yield scrapy.Request(url=urljoin(self.root_url, link), callback=self.parse_detail, meta=response.meta, encoding=self.encoding)
 
         # push page links to scrapy
         if response.meta["TAB_QuerySubmitPagerData"] == "1":
@@ -57,7 +58,7 @@ class LandSpider(scrapy.Spider):
                                          meta=self.postData, encoding=self.encoding)
 
     def parse_detail(self, response):
-        self.log("process detail page {}".format(response.url), logging.INFO)
+        self.log("process detail page {}, {}".format(response.meta["TAB_QuerySubmitPagerData"], response.url), logging.INFO)
         resp = Selector(response)
         childTrs = resp.xpath('//table[@class="theme"]/tbody/tr')
         data = LandChinaItem()
