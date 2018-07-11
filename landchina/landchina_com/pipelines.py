@@ -72,7 +72,11 @@ class LandchinaComPipeline(object):
         strip_data = self.format_string(data)
         if strip_data == "":
             return None
-        return datetime.datetime.strptime(strip_data, "%Y年%m月%d日")
+        try:
+            result = datetime.datetime.strptime(strip_data, "%Y年%m月%d日")
+            return result
+        except:
+            return None
 
     def parse_string(self, data):
         if data is None:
@@ -85,7 +89,11 @@ class LandchinaComPipeline(object):
         strip_data = self.format_string(data)
         if strip_data == "":
             return None
-        return float(strip_data)
+        try:
+            result = float(strip_data)
+            return result
+        except:
+            return None
 
     def parse_int(self, data):
         if data is None:
@@ -93,7 +101,11 @@ class LandchinaComPipeline(object):
         strip_data = self.format_string(data)
         if strip_data == "":
             return None
-        return int(strip_data)
+        try:
+            result = int(strip_data)
+            return result
+        except:
+            return None
 
     def format_string(self, data):
         return "".join(data.split()).strip()
