@@ -1,25 +1,32 @@
 import scrapy
 import logging
-import time
+import re
 from scrapy.selector import Selector
 from urllib.parse import urljoin
 from landchina.landchina_com.items import LandChinaItem, Payment
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql import exists
+from landchina.landchina_com.models.models import Record, create_engine
+from scrapy.utils.project import get_project_settings
 
 
 class LandSpider(scrapy.Spider):
     name = "landchina_com"
     root_url = "http://www.landchina.com/default.aspx?tabid=263"
     encoding = "gbk"
-    start_date = "2018-6-25"
-    end_date = "2018-6-20"
+    start_date = "2018-6-20"
+    end_date = "2018-6-25"
+    begin_page = "1"
     postData = {'TAB_QueryConditionItem': '9f2c3acd-0256-4da2-a659-6949c4671a2a',
                 'TAB_QuerySubmitConditionData': '9f2c3acd-0256-4da2-a659-6949c4671a2a:{}~{}'.format(
                     start_date, end_date),
                 'TAB_QuerySortItemList': '282:False',
-                'TAB_QuerySubmitPagerData': '1',
+                'TAB_QuerySubmitPagerData': begin_page,
                 'hidComName': 'default',
                 '__VIEWSTATE': "",
                 '__EVENTVALIDATION': ""}
+    engine = create_engine(get_project_settings().get("CONNECTION_STRING"))
+    session = sessionmaker(bind=engine)()
 
     def start_requests(self):
         self.log("begin login for {} - {}".format(self.start_date, self.end_date), logging.INFO)
@@ -31,7 +38,6 @@ class LandSpider(scrapy.Spider):
         resp = Selector(response)
         self.retrieve_state(resp)
 
-        time.sleep(10)
         self.log("begin page {} for {} - {}".format(self.postData["TAB_QuerySubmitPagerData"], self.start_date,
                                                     self.end_date), logging.INFO)
         return scrapy.FormRequest(url=self.root_url, callback=self.parse_list, formdata=self.postData,
@@ -45,20 +51,29 @@ class LandSpider(scrapy.Spider):
         # push detail page links to scrapy
         detail_links = table.xpath('//a[contains(@href, "tabid=386")]/@href').extract()
         for link in detail_links:
-            yield scrapy.Request(url=urljoin(self.root_url, link), callback=self.parse_detail, meta=response.meta, encoding=self.encoding)
+            matchObj = re.match(r'.*recorderguid=(.*)', link, re.M | re.I)
+            if matchObj and self.record_exist(matchObj[1]):
+                continue
+            yield scrapy.Request(url=urljoin(self.root_url, link), callback=self.parse_detail, meta=response.meta,
+                                 encoding=self.encoding)
 
         # push page links to scrapy
-        if response.meta["TAB_QuerySubmitPagerData"] == "1":
+        if response.meta["TAB_QuerySubmitPagerData"] == self.begin_page:
             self.retrieve_state(resp)
-            totalPage = table.xpath("//a[contains(., '尾页')]").re_first(r"QueryAction.GoPage\('TAB',(\d*)").strip()
-            for pageNo in range(2, int(totalPage)):
+            totalPage=int(self.begin_page) + 1
+            try:
+                totalPage = table.xpath("//a[contains(., '尾页')]").re_first(r"QueryAction.GoPage\('TAB',(\d*)").strip()
+            except:
+                pass
+            for pageNo in range(int(self.begin_page), int(totalPage) + 1):
                 self.log("begin page {} for {} - {}".format(pageNo, self.start_date, self.end_date), logging.INFO)
                 self.postData["TAB_QuerySubmitPagerData"] = str(pageNo)
                 yield scrapy.FormRequest(url=self.root_url, callback=self.parse_list, formdata=self.postData,
                                          meta=self.postData, encoding=self.encoding)
 
     def parse_detail(self, response):
-        self.log("process detail page {}, {}".format(response.meta["TAB_QuerySubmitPagerData"], response.url), logging.INFO)
+        self.log("process detail page {}, {}".format(response.meta["TAB_QuerySubmitPagerData"], response.url),
+                 logging.INFO)
         resp = Selector(response)
         childTrs = resp.xpath('//table[@class="theme"]/tbody/tr')
         data = LandChinaItem()
@@ -122,3 +137,6 @@ class LandSpider(scrapy.Spider):
         ev = resp.xpath('//input[@id="__EVENTVALIDATION"]/@value').extract_first().strip()
         self.postData['__VIEWSTATE'] = vs
         self.postData['__EVENTVALIDATION'] = ev
+
+    def record_exist(self, guid):
+        return self.session.query(exists().where(Record.guid == guid)).scalar()
